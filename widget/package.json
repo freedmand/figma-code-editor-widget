@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "build": "tsc -p tsconfig.json --outDir ..",
+    "watch": "tsc -p tsconfig.json --outDir .. -w"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "*",
+    "@figma/widget-typings": "*",
+    "typescript": "*"
+  }
+}

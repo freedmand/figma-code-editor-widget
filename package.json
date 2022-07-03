@@ -1,0 +1,19 @@
+{
+  "name": "figma-code-editor",
+  "version": "1.0.0",
+  "description": "Your Figma widget",
+  "main": "code.js",
+  "scripts": {
+    "build:iframe": "cd iframe && npm run build",
+    "build:widget": "cd widget && npm run build",
+    "watch:iframe": "cd iframe && npm run watch",
+    "watch:widget": "cd widget && npm run watch",
+    "build": "concurrently \"npm:build:iframe\" \"npm:build:widget\"",
+    "watch": "concurrently \"npm:watch:iframe\" \"npm:watch:widget\""
+  },
+  "author": "Dylan Freedman",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^7.2.2"
+  }
+}

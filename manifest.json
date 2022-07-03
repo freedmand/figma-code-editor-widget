@@ -1,0 +1,10 @@
+{
+  "name": "Code Editor",
+  "id": "1125176659139239100",
+  "api": "1.0.0",
+  "main": "code.js",
+  "editorType": ["figma", "figjam"],
+  "containsWidget": true,
+  "widgetApi": "1.0.0",
+  "ui": "ui.html"
+}
