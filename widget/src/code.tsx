@@ -2,11 +2,8 @@
 // This widget will open an Iframe window with buttons to show a toast message and close the window.
 
 const { widget } = figma;
-const { useEffect, Text, Frame, useSyncedState, usePropertyMenu } = widget;
-
-const LETTER_WIDTH = 15;
-const LETTER_HEIGHT = 30;
-const FONT_SIZE = 24;
+const { useEffect, Text, Frame, AutoLayout, useSyncedState, usePropertyMenu } =
+  widget;
 
 const PLACEHOLDER = "rgb(128, 128, 128)";
 const FONT_FAMILY = "Source Code Pro";
@@ -135,10 +132,77 @@ function getFill(style: string): Color {
   }
 }
 
+const SIZES = [10, 12, 14, 16, 18, 20, 24, 32, 36, 40, 48, 64, 96, 128];
+
+function fillMode(color: Color, mode: string): Color {
+  if (mode === "light") return color;
+  return {
+    r: 1 - color.r,
+    g: 1 - color.g,
+    b: 1 - color.b,
+    a: color.a,
+  };
+}
+
 function Widget() {
   const [tokens, setTokens] = useSyncedState(
     "text",
     placeholderTokens(PLACEHOLDER_TEXT)
+  );
+
+  const [FONT_SIZE, setFontSize] = useSyncedState("fontSize", 24);
+  const [colorMode, setColorMode] = useSyncedState("colorMode", "light");
+  const [includeFrame, setIncludeFrame] = useSyncedState("includeFrame", true);
+  const LETTER_WIDTH = (FONT_SIZE / 24) * 15;
+  const LETTER_HEIGHT = (FONT_SIZE / 24) * 30;
+  const PADDING = (FONT_SIZE / 24) * 10;
+  const CORNER_RADIUS = (FONT_SIZE / 24) * 8;
+  const BACKGROUND = colorMode === "light" ? "#FFFFFF" : "#343434";
+
+  usePropertyMenu(
+    [
+      {
+        itemType: "dropdown",
+        selectedOption: `${includeFrame}`,
+        tooltip: "Frame code",
+        propertyName: "includeFrame",
+        options: [
+          { label: "Framed", option: "true" },
+          { label: "Unframed", option: "false" },
+        ],
+      },
+      {
+        itemType: "dropdown",
+        selectedOption: colorMode,
+        tooltip: "Color mode",
+        propertyName: "colorMode",
+        options: [
+          { label: "Light mode", option: "light" },
+          { label: "Dark mode", option: "dark" },
+        ],
+      },
+      {
+        itemType: "dropdown",
+        selectedOption: `${FONT_SIZE}`,
+        tooltip: "Font size",
+        propertyName: "fontSize",
+        options: SIZES.map((size) => ({
+          label: `${size}`,
+          option: `${size}`,
+        })),
+      },
+    ],
+    (e) => {
+      if (e.propertyName === "includeFrame") {
+        setIncludeFrame(e.propertyValue === "true");
+      }
+      if (e.propertyName === "colorMode") {
+        setColorMode(e.propertyValue);
+      }
+      if (e.propertyName === "fontSize") {
+        setFontSize(parseInt(e.propertyValue));
+      }
+    }
   );
 
   useEffect(() => {
@@ -154,7 +218,7 @@ function Widget() {
     };
   });
 
-  return (
+  const component = (
     <Frame
       width={tokens.width * LETTER_WIDTH}
       height={tokens.height * LETTER_HEIGHT}
@@ -186,7 +250,7 @@ function Widget() {
             fontSize={FONT_SIZE}
             x={token.x * LETTER_WIDTH}
             y={token.y * LETTER_HEIGHT}
-            fill={getFill(token.style.color)}
+            fill={fillMode(getFill(token.style.color), colorMode)}
             fontWeight={ensureFontWeight(token.style.weight)}
             key={JSON.stringify(token)}
           >
@@ -196,6 +260,35 @@ function Widget() {
       })}
     </Frame>
   );
+
+  if (includeFrame) {
+    return (
+      <AutoLayout
+        direction="horizontal"
+        padding={PADDING}
+        cornerRadius={CORNER_RADIUS}
+        fill={BACKGROUND}
+        effect={{
+          type: "drop-shadow",
+          blur: (15 / 40) * FONT_SIZE,
+          offset: {
+            x: 0,
+            y: (3 / 40) * FONT_SIZE,
+          },
+          color: {
+            r: 0,
+            g: 0,
+            b: 0,
+            a: 0.13,
+          },
+        }}
+      >
+        {component}
+      </AutoLayout>
+    );
+  } else {
+    return component;
+  }
 }
 
 widget.register(Widget);
