@@ -208,7 +208,6 @@ function Widget() {
   useEffect(() => {
     figma.ui.onmessage = (msg: Message) => {
       if (msg.type === "text") {
-        console.log("GOT", msg);
         if (msg.text === "") {
           setTokens(placeholderTokens(PLACEHOLDER_TEXT, msg.language));
         } else {
@@ -228,7 +227,6 @@ function Widget() {
         // "figma.closePlugin()" will terminate the code.
         () =>
           new Promise((resolve) => {
-            console.log("TOKENS", tokens);
             const injectedHtml = __html__
               .replace(
                 /['"]\$\$\$INITIAL_DOC\$\$\$['"]/,
