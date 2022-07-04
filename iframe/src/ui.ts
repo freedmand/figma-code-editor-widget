@@ -3,7 +3,11 @@ import { EditorView, ViewUpdate, keymap } from "@codemirror/view";
 import { EditorState, StateEffect } from "@codemirror/state";
 import { basicSetup } from "codemirror";
 import { indentWithTab } from "@codemirror/commands";
-import { defaultHighlightStyle, LanguageSupport } from "@codemirror/language";
+import {
+  defaultHighlightStyle,
+  LanguageSupport,
+  ensureSyntaxTree,
+} from "@codemirror/language";
 import { highlightTree } from "@lezer/highlight";
 import { javascript } from "@codemirror/lang-javascript";
 import { html } from "@codemirror/lang-html";
@@ -115,6 +119,36 @@ const DEFAULT_STYLE: Style = {
  * @returns CodeMirror extensions to power the editor
  */
 function getExtensions(language: LanguageSupport, languageName: string) {
+  // Cached styles
+  const STYLE_CACHE: { [style: string]: Style } = {};
+
+  /**
+   * Gets the style given a CodeMirror highlight class
+   * @param className The CodeMirror class name
+   * @returns A style object with computed styles based on the iframe DOM
+   */
+  function getStyle(className: string): Style {
+    // Check if the style is cached to avoid unnecessary computation
+    if (STYLE_CACHE[className] != null) {
+      return STYLE_CACHE[className];
+    }
+
+    // Create a temporary element
+    const tmpElem = document.createElement("div");
+    tmpElem.className = className;
+    document.body.appendChild(tmpElem);
+    // Update the cache with the computed style
+    const computed = getComputedStyle(tmpElem);
+    STYLE_CACHE[className] = {
+      color: computed.color,
+      weight: computed.fontWeight,
+    };
+    document.body.removeChild(tmpElem);
+
+    // Return getStyle, which will retrieve from cache now
+    return getStyle(className);
+  }
+
   return [
     // Essential setup
     [basicSetup, keymap.of([indentWithTab]), language],
@@ -131,7 +165,11 @@ function getExtensions(language: LanguageSupport, languageName: string) {
         // Build up the highlighting syntax tree
         const highlighting: [number, number, string][] = [];
         highlightTree(
-          language.language.parser.parse(docContents),
+          ensureSyntaxTree(
+            editor.state,
+            v.state.doc.length,
+            (() => false) as unknown as number
+          ),
           defaultHighlightStyle,
           (from, to, classes) => highlighting.push([from, to, classes])
         );
@@ -162,36 +200,6 @@ function getExtensions(language: LanguageSupport, languageName: string) {
         // Add one more line to the height
         const height = y + 1;
 
-        // Cached styles
-        const STYLE_CACHE: { [style: string]: Style } = {};
-
-        /**
-         * Gets the style given a CodeMirror highlight class
-         * @param className The CodeMirror class name
-         * @returns A style object with computed styles based on the iframe DOM
-         */
-        function getStyle(className: string): Style {
-          // Check if the style is cached to avoid unnecessary computation
-          if (STYLE_CACHE[className] != null) {
-            return STYLE_CACHE[className];
-          }
-
-          // Create a temporary element
-          const tmpElem = document.createElement("div");
-          tmpElem.className = className;
-          document.body.appendChild(tmpElem);
-          // Update the cache with the computed style
-          const computed = getComputedStyle(tmpElem);
-          STYLE_CACHE[className] = {
-            color: computed.color,
-            weight: computed.fontWeight,
-          };
-          document.body.removeChild(tmpElem);
-
-          // Return getStyle, which will retrieve from cache now
-          return getStyle(className);
-        }
-
         // Color in tokens
         for (const highlight of highlighting) {
           for (let i = highlight[0]; i < highlight[1]; i++) {
@@ -199,13 +207,63 @@ function getExtensions(language: LanguageSupport, languageName: string) {
           }
         }
 
+        // Group tokens
+        const newTokens: Token[] = [];
+        let prevToken: Token | null = null;
+        let currentRun: Token[] = [];
+
+        const flushTokens = () => {
+          if (currentRun.length > 0) {
+            // Flush out current tokens
+            const firstToken = currentRun[0];
+            let combinedTokenText = "";
+            for (const token of currentRun) {
+              combinedTokenText += token.text;
+            }
+            newTokens.push({
+              i: firstToken.i,
+              x: firstToken.x,
+              y: firstToken.y,
+              style: firstToken.style,
+              text: combinedTokenText,
+            });
+            // Set current run
+            currentRun = [];
+          }
+        };
+
+        for (const token of tokens) {
+          if (token.text === "\n") {
+            // Newline token always ends the current run
+            flushTokens();
+          } else {
+            // Check the previous token
+            if (prevToken != null) {
+              if (
+                prevToken.style.color !== token.style.color ||
+                prevToken.style.weight !== token.style.weight
+              ) {
+                // If the tokens don't match, flush the current run
+                flushTokens();
+              }
+            }
+            // No matter what, increment the current run
+            currentRun.push(token);
+          }
+
+          // Set the previous token
+          prevToken = token;
+        }
+        // Flush any remaining tokens
+        flushTokens();
+
         // The message to pass back to the widget
         const message: Message = {
           type: "text",
           width,
           height,
           text: docContents,
-          tokens,
+          tokens: newTokens,
           language: languageName,
         };
 

@@ -153,7 +153,7 @@ function Widget() {
   const [FONT_SIZE, setFontSize] = useSyncedState("fontSize", 24);
   const [colorMode, setColorMode] = useSyncedState("colorMode", "light");
   const [includeFrame, setIncludeFrame] = useSyncedState("includeFrame", true);
-  const LETTER_WIDTH = (FONT_SIZE / 24) * 15;
+  const LETTER_WIDTH = FONT_SIZE * 0.6;
   const LETTER_HEIGHT = (FONT_SIZE / 24) * 30;
   const PADDING = (FONT_SIZE / 24) * 10;
   const CORNER_RADIUS = (FONT_SIZE / 24) * 8;
@@ -250,7 +250,7 @@ function Widget() {
             y={token.y * LETTER_HEIGHT}
             fill={fillMode(getFill(token.style.color), colorMode)}
             fontWeight={ensureFontWeight(token.style.weight)}
-            key={JSON.stringify(token)}
+            key={token.text}
           >
             {token.text}
           </Text>
