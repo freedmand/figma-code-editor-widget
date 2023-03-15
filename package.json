@@ -15,5 +15,8 @@
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^7.2.2"
+  },
+  "dependencies": {
+    "@replit/codemirror-lang-csharp": "^6.1.0"
   }
 }
