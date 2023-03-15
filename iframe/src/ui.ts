@@ -21,12 +21,18 @@ import { python } from "@codemirror/lang-python";
 import { php } from "@codemirror/lang-php";
 import { json } from "@codemirror/lang-json";
 import { java } from "@codemirror/lang-java";
+import { csharp } from "@replit/codemirror-lang-csharp"
 
 // Replaced by the widget to inject state
 const INITIAL_DOC = "";
 const INITIAL_LANGUAGE = "JavaScript";
 
 // The mapping from languages to CodeMirror packages
+interface ILanguage {
+  name: string;
+  package: () => LanguageSupport
+};
+
 const LANGUAGES = [
   {
     name: "JavaScript",
@@ -61,6 +67,10 @@ const LANGUAGES = [
     package: () => css(),
   },
   {
+    name: "C#",
+    package: () => csharp()
+  },
+  {
     name: "Python",
     package: () => python(),
   },
@@ -76,7 +86,7 @@ const LANGUAGES = [
     name: "Java",
     package: () => java(),
   },
-];
+] as ILanguage[];
 
 // Initialize the language
 const languageObject = LANGUAGES.filter(
